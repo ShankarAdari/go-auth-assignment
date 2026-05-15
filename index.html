@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GoAuth — Kinetic Auth Portal</title>
+  
+  <!-- Montserrat Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+  
+  <!-- GSAP Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090b;
+      --surface: rgba(255,255,255,0.03);
+      --surface-hover: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.08);
+      --accent: #f43f5e;
+      --accent2: #8b5cf6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      perspective: 1000px;
+    }
+
+    /* Animated noise/glow background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 30% 20%, rgba(244,63,94,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 70% 80%, rgba(139,92,246,0.08) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* Header */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.5rem 2rem;
+      background: transparent;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 1.5rem; font-weight: 900; letter-spacing: -1px; text-transform: uppercase;
+    }
+    .logo span { color: var(--accent); }
+    .status-badge {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 1rem; border-radius: 999px;
+      background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+      font-size: 0.8rem; font-weight: 600; color: var(--success);
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 50% { opacity:0.5; box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
+
+    /* Kinetic Hero */
+    .hero {
+      text-align: center;
+      padding: 6rem 0 5rem;
+      position: relative;
+    }
+    
+    .kinetic-text {
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      font-weight: 900;
+      line-height: 0.9;
+      text-transform: uppercase;
+      letter-spacing: -2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .kinetic-line {
+      display: flex;
+      overflow: hidden;
+      padding: 0.2em 0;
+    }
+    
+    .kinetic-word {
+      display: inline-block;
+      margin: 0 0.2em;
+      transform-origin: center;
+      will-change: transform;
+    }
+    
+    .kinetic-char {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, var(--accent), var(--accent2), #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% auto;
+      animation: gradient 5s ease infinite;
+    }
+    
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .hero p { 
+      color: var(--muted); 
+      font-size: 1.2rem; 
+      font-weight: 400;
+      max-width: 600px; 
+      margin: 0 auto;
+      opacity: 0; /* for GSAP */
+      transform: translateY(20px);
+    }
+
+    /* Token bar */
+    #token-bar {
+      display: none; margin: 0 0 3rem;
+      background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3);
+      border-radius: var(--radius); padding: 1.2rem 1.5rem;
+      align-items: center; gap: 1rem; flex-wrap: wrap;
+      box-shadow: 0 10px 30px rgba(139,92,246,0.1);
+    }
+    #token-bar .tb-label { font-size: 0.8rem; font-weight: 800; color: var(--accent2); text-transform: uppercase; letter-spacing: 1px; }
+    #token-bar .tb-value { font-family: monospace; font-size: 0.8rem; color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #token-bar .tb-role { padding: 0.3rem 1rem; border-radius: 999px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; }
+    .role-admin { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.4); }
+    .role-user { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.4); }
+    .btn-logout { margin-left: auto; padding: 0.5rem 1.5rem; border-radius: 8px; border: 1px solid rgba(239,68,68,0.5); background: rgba(239,68,68,0.1); color: #f87171; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); transform: translateY(-2px); }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-bottom: 4rem; opacity: 0; }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0; transition: opacity 0.4s;
+    }
+    .card:hover { 
+      border-color: rgba(255,255,255,0.2); 
+      transform: translateY(-10px) scale(1.02); 
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
+      background: var(--surface-hover);
+    }
+    .card:hover::before { opacity: 1; }
+    
+    .card-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+    .icon-purple { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+    .icon-green  { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+    .icon-blue   { background: rgba(56,189,248,0.15); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.3); }
+    .icon-yellow { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+    .card-title { font-size: 1.2rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card-sub   { font-size: 0.8rem; color: var(--muted); margin-top: 4px; font-family: monospace; }
+
+    /* Form */
+    .form-group { margin-bottom: 1.2rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; }
+    input, select {
+      width: 100%; padding: 0.8rem 1.2rem;
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.95rem;
+      transition: all 0.3s; outline: none; font-weight: 500;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(244,63,94,0.15); background: rgba(0,0,0,0.5); }
+    select option { background: #0f111a; }
+
+    /* Buttons */
+    .btn {
+      width: 100%; padding: 1rem 1.5rem; border-radius: 8px;
+      font-family: inherit; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+      cursor: pointer; border: none; transition: all 0.3s; margin-top: 1rem;
+      position: relative; overflow: hidden;
+    }
+    .btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(255,255,255,0.2), transparent); opacity: 0; transition: opacity 0.3s; }
+    .btn:hover::after { opacity: 1; }
+    .btn:active { transform: scale(0.96); }
+    
+    .btn-primary { background: var(--accent); color: white; box-shadow: 0 4px 15px rgba(244,63,94,0.3); }
+    .btn-success { background: var(--success); color: white; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+    .btn-info    { background: #0284c7; color: white; box-shadow: 0 4px 15px rgba(2,132,199,0.3); }
+    .btn-warning { background: var(--warning); color: white; box-shadow: 0 4px 15px rgba(245,158,11,0.3); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Response */
+    .response-box {
+      margin-top: 1.5rem; border-radius: 8px;
+      border: 1px solid var(--border); overflow: hidden; display: none;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
+    }
+    .response-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 1.2rem; background: rgba(0,0,0,0.4);
+      font-size: 0.75rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .response-header .status { padding: 0.2rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 800; }
+    .status-ok  { background: rgba(16,185,129,0.2); color: #34d399; }
+    .status-err { background: rgba(239,68,68,0.2); color: #f87171; }
+    .response-body { padding: 1.2rem; font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.6); }
+
+    /* Endpoints */
+    .ep-card { opacity: 0; }
+    .endpoints { margin-top: 1rem; }
+    .ep { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 0.6rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); transition: transform 0.2s; }
+    .ep:hover { transform: translateX(5px); background: rgba(255,255,255,0.05); }
+    .method { padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 900; min-width: 50px; text-align: center; }
+    .post  { background: rgba(16,185,129,0.2); color: #34d399; }
+    .get   { background: rgba(56,189,248,0.2); color: #7dd3fc; }
+    .ep-path { font-family: monospace; font-size: 0.9rem; flex: 1; font-weight: 600; }
+    .ep-desc { font-size: 0.8rem; color: var(--muted); }
+    .ep-lock { font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 800; text-transform: uppercase; }
+    .lock-public { background: rgba(16,185,129,0.1); color: #34d399; }
+    .lock-auth   { background: rgba(139,92,246,0.1); color: #a78bfa; }
+    .lock-admin  { background: rgba(245,158,11,0.1); color: #fbbf24; }
+
+    @media (max-width: 768px) {
+      .kinetic-text { font-size: 3.5rem; }
+      header { flex-direction: column; gap: 1rem; }
+      .ep { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    Go<span>Auth</span>
+  </div>
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    API Online :8080
+  </div>
+</header>
+
+<div class="container">
+  
+  <!-- Kinetic Hero Section -->
+  <div class="hero" id="hero-section">
+    <div class="kinetic-text">
+      <div class="kinetic-line">
+        <span class="kinetic-word">SECURE</span>
+        <span class="kinetic-word">YOUR</span>
+      </div>
+      <div class="kinetic-line">
+        <span class="kinetic-word gradient-text">FUTURE</span>
+      </div>
+    </div>
+    <p class="hero-desc">Experience seamless JWT authentication with role-based access control, built robustly on Golang and SQLite.</p>
+  </div>
+
+  <!-- Token bar -->
+  <div id="token-bar">
+    <span class="tb-label">Token Active</span>
+    <span class="tb-value" id="tb-token-value">—</span>
+    <span class="tb-role" id="tb-role-badge"></span>
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="grid" id="main-grid">
+    <!-- SIGNUP -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-purple">✦</div>
+        <div>
+          <div class="card-title">Sign Up</div>
+          <div class="card-sub">POST /signup</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="su-username" placeholder="e.g. john_doe" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="su-password" placeholder="Min 6 characters" />
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="su-role">
+          <option value="user">USER</option>
+          <option value="admin">ADMIN</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="su-btn" onclick="doSignup()">Create Account</button>
+      <div class="response-box" id="su-resp">
+        <div class="response-header">
+          <span>RESPONSE</span><span class="status" id="su-status"></span>
+        </div>
+        <div class="response-body" id="su-body"></div>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-green">►</div>
+        <div>
+          <div class="card-title">Login</div>
+          <div class="card-sub">POST /login</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="li-username" placeholder="Your username" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="li-password" placeholder="Your password" />
+      </div>
+      <button class="btn btn-success" id="li-btn" onclick="doLogin()">Authenticate</button>
+      <div class="response-box" id="li-resp">
+        <div class="response-header">
+          <span>RESPONSE</span><span class="status" id="li-status"></span>
+        </div>
+        <div class="response-body" id="li-body"></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-blue">●</div>
+        <div>
+          <div class="card-title">My Profile</div>
+          <div class="card-sub">GET /profile — requires JWT</div>
+        </div>
+      </div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:1.5rem; line-height:1.6; font-weight:500;">
+        Returns the authenticated user's own profile data. Login first to obtain a token.
+      </p>
+      <button class="btn btn-info" id="pr-btn" onclick="doProfile()">Fetch Profile</button>
+      <div class="response-box" id="pr-resp">
+        <div class="response-header">
+          <span>RESPONSE</span><span class="status" id="pr-status"></span>
+        </div>
+        <div class="response-body" id="pr-body"></div>
+      </div>
+    </div>
+
+    <!-- ALL USERS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-yellow">★</div>
+        <div>
+          <div class="card-title">All Users</div>
+          <div class="card-sub">GET /users — Admin only</div>
+        </div>
+      </div>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:1.5rem; line-height:1.6; font-weight:500;">
+        Lists all registered users. Requires an <strong style="color:var(--warning)">ADMIN</strong> role JWT. Regular users receive 403.
+      </p>
+      <button class="btn btn-warning" id="us-btn" onclick="doUsers()">List Users</button>
+      <div class="response-box" id="us-resp">
+        <div class="response-header">
+          <span>RESPONSE</span><span class="status" id="us-status"></span>
+        </div>
+        <div class="response-body" id="us-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Endpoint Reference -->
+  <div class="card ep-card" id="ep-card">
+    <div class="card-header">
+      <div class="card-icon icon-purple">◈</div>
+      <div>
+        <div class="card-title">API Endpoint Reference</div>
+        <div class="card-sub">Base URL: http://localhost:8080</div>
+      </div>
+    </div>
+    <div class="endpoints">
+      <div class="ep">
+        <span class="method post">POST</span>
+        <span class="ep-path">/signup</span>
+        <span class="ep-desc">Register a new user</span>
+        <span class="ep-lock lock-public">Public</span>
+      </div>
+      <div class="ep">
+        <span class="method post">POST</span>
+        <span class="ep-path">/login</span>
+        <span class="ep-desc">Authenticate and get JWT token</span>
+        <span class="ep-lock lock-public">Public</span>
+      </div>
+      <div class="ep">
+        <span class="method get">GET</span>
+        <span class="ep-path">/profile</span>
+        <span class="ep-desc">Get own user profile</span>
+        <span class="ep-lock lock-auth">JWT Auth</span>
+      </div>
+      <div class="ep">
+        <span class="method get">GET</span>
+        <span class="ep-path">/users</span>
+        <span class="ep-desc">List all users</span>
+        <span class="ep-lock lock-admin">Admin Only</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- GSAP Kinetic Typography Animations ---
+  document.addEventListener("DOMContentLoaded", () => {
+    // Split text into characters for precise animation
+    const words = document.querySelectorAll('.kinetic-word');
+    words.forEach(word => {
+      const text = word.innerText;
+      word.innerHTML = '';
+      for (let i = 0; i < text.length; i++) {
+        const char = document.createElement('span');
+        char.className = 'kinetic-char';
+        char.innerText = text[i];
+        word.appendChild(char);
+      }
+    });
+
+    const chars = document.querySelectorAll('.kinetic-char');
+    
+    // Initial entrance animation
+    const tl = gsap.timeline();
+    tl.from(chars, {
+      y: 100,
+      opacity: 0,
+      rotateX: -90,
+      stagger: 0.03,
+      duration: 1.2,
+      ease: "back.out(1.7)",
+      transformOrigin: "50% 50% -50"
+    })
+    .to(".hero-desc", {
+      opacity: 1,
+      y: 0,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.6")
+    .to("#main-grid", {
+      opacity: 1,
+      y: 0,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.4")
+    .to("#ep-card", {
+      opacity: 1,
+      y: 0,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.6");
+
+    // Mouse movement parallax / kinetic effect
+    const heroSection = document.getElementById('hero-section');
+    heroSection.addEventListener('mousemove', (e) => {
+      const rect = heroSection.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      
+      // Animate characters slightly based on mouse position
+      gsap.to(chars, {
+        x: (index, target) => x * 0.05 * (Math.random() * 0.5 + 0.5),
+        y: (index, target) => y * 0.05 * (Math.random() * 0.5 + 0.5),
+        rotationZ: (index, target) => x * 0.01,
+        duration: 0.5,
+        ease: "power2.out",
+        stagger: 0.01
+      });
+    });
+
+    heroSection.addEventListener('mouseleave', () => {
+      gsap.to(chars, {
+        x: 0, y: 0, rotationZ: 0,
+        duration: 1,
+        ease: "elastic.out(1, 0.3)"
+      });
+    });
+  });
+
+  // --- API Logic ---
+  const API = 'http://localhost:8080';
+  let authToken = null;
+  let authRole  = null;
+
+  function setLoading(btnId, loading, defaultText) {
+    const btn = document.getElementById(btnId);
+    if (loading) {
+      btn.disabled = true;
+      btn.innerText = 'LOADING...';
+    } else {
+      btn.disabled = false;
+      if (defaultText) btn.innerText = defaultText;
+    }
+  }
+
+  function showResponse(prefix, status, data) {
+    const box = document.getElementById(`${prefix}-resp`);
+    box.style.display = 'block';
+    
+    // Animate response box in
+    gsap.fromTo(box, { height: 0, opacity: 0 }, { height: "auto", opacity: 1, duration: 0.4, ease: "power2.out" });
+
+    const statusEl = document.getElementById(`${prefix}-status`);
+    const bodyEl   = document.getElementById(`${prefix}-body`);
+    const ok = status >= 200 && status < 300;
+    statusEl.textContent = status;
+    statusEl.className = 'status ' + (ok ? 'status-ok' : 'status-err');
+    bodyEl.textContent = JSON.stringify(data, null, 2);
+  }
+
+  function updateTokenBar() {
+    const bar = document.getElementById('token-bar');
+    if (authToken) {
+      bar.style.display = 'flex';
+      gsap.fromTo(bar, { y: -20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "back.out(1.5)" });
+      document.getElementById('tb-token-value').textContent = authToken;
+      const badge = document.getElementById('tb-role-badge');
+      badge.textContent = authRole.toUpperCase();
+      badge.className = 'tb-role ' + (authRole === 'admin' ? 'role-admin' : 'role-user');
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
+  function logout() {
+    authToken = null; authRole = null;
+    updateTokenBar();
+    ['su','li','pr','us'].forEach(p => {
+      const b = document.getElementById(`${p}-resp`);
+      if (b) b.style.display = 'none';
+    });
+  }
+
+  async function apiCall(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
+    if (body)     opts.body = JSON.stringify(body);
+    try {
+      const r = await fetch(API + path, opts);
+      const data = await r.json().catch(() => ({}));
+      return { status: r.status, data };
+    } catch (e) {
+      return { status: 0, data: { error: 'Network error — is the server running?' } };
+    }
+  }
+
+  async function doSignup() {
+    setLoading('su-btn', true);
+    const u = document.getElementById('su-username').value.trim();
+    const p = document.getElementById('su-password').value;
+    const r = document.getElementById('su-role').value;
+    if (!u || !p) { alert('Username and password required'); setLoading('su-btn', false, 'Create Account'); return; }
+    const { status, data } = await apiCall('POST', '/signup', { username: u, password: p, role: r });
+    showResponse('su', status, data);
+    setLoading('su-btn', false);
+    const btn = document.getElementById('su-btn');
+    btn.textContent = '✅ SUCCESS';
+    setTimeout(() => btn.textContent = 'Create Account', 2500);
+  }
+
+  async function doLogin() {
+    setLoading('li-btn', true);
+    const u = document.getElementById('li-username').value.trim();
+    const p = document.getElementById('li-password').value;
+    if (!u || !p) { alert('Username and password required'); setLoading('li-btn', false, 'Authenticate'); return; }
+    const { status, data } = await apiCall('POST', '/login', { username: u, password: p });
+    showResponse('li', status, data);
+    if (data.token) {
+      authToken = data.token;
+      try {
+        const payload = JSON.parse(atob(authToken.split('.')[1]));
+        authRole = payload.role || 'user';
+      } catch { authRole = 'user'; }
+      updateTokenBar();
+      const btn = document.getElementById('li-btn');
+      btn.textContent = '✅ AUTHENTICATED';
+      setTimeout(() => { btn.textContent = 'Authenticate'; setLoading('li-btn', false); }, 1500);
+    } else {
+      setLoading('li-btn', false, 'Authenticate');
+    }
+  }
+
+  async function doProfile() {
+    if (!authToken) { alert('Please login first to get a token!'); return; }
+    setLoading('pr-btn', true);
+    const { status, data } = await apiCall('GET', '/profile');
+    showResponse('pr', status, data);
+    setLoading('pr-btn', false, 'Fetch Profile');
+  }
+
+  async function doUsers() {
+    if (!authToken) { alert('Please login first to get a token!'); return; }
+    setLoading('us-btn', true);
+    const { status, data } = await apiCall('GET', '/users');
+    showResponse('us', status, data);
+    setLoading('us-btn', false, 'List Users');
+  }
+</script>
+</body>
+</html>
