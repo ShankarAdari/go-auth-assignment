@@ -562,16 +562,17 @@
       if (Array.isArray(data)) {
         html += '<table class="data-table"><thead><tr><th>ID</th><th>USERNAME</th><th>ROLE</th></tr></thead><tbody>';
         data.forEach(item => {
+          const userId = item.ID !== undefined ? item.ID : item.id;
           const roleClass = item.role === 'admin' ? 'role-admin' : 'role-user';
           html += `<tr>
-            <td>${item.id}</td>
+            <td>${userId}</td>
             <td><strong style="color:var(--text)">${item.username}</strong></td>
-            <td><span class="tb-role ${roleClass}">${item.role.toUpperCase()}</span></td>
+            <td><span class="tb-role ${roleClass}">${(item.role||'').toUpperCase()}</span></td>
           </tr>`;
         });
         html += '</tbody></table>';
-      } else if (data.message || data.error) {
-        const msg = data.message || data.error;
+      } else if (data.message || data.error || data.token) {
+        const msg = data.message || data.error || "Authentication successful!";
         const icon = data.error ? '⚠️' : '✅';
         html += `<div class="data-msg">
           <span class="msg-icon">${icon}</span>
@@ -580,12 +581,14 @@
         if (data.token) {
            html += `<div class="data-token"><strong>TOKEN:</strong><br/>${data.token.substring(0, 40)}...</div>`;
         }
-      } else if (data.id !== undefined && data.username) {
+      } else if ((data.ID !== undefined || data.id !== undefined) && data.username) {
+        const userId = data.ID !== undefined ? data.ID : data.id;
         const roleClass = data.role === 'admin' ? 'role-admin' : 'role-user';
         html += `<div class="data-profile">
-          <div class="dp-row"><span>User ID</span> <strong style="font-size:1.1rem">${data.id}</strong></div>
+          <div class="dp-row"><span>User ID</span> <strong style="font-size:1.1rem">${userId}</strong></div>
           <div class="dp-row"><span>Username</span> <strong style="font-size:1.1rem">${data.username}</strong></div>
-          <div class="dp-row"><span>Assigned Role</span> <span class="tb-role ${roleClass}">${data.role.toUpperCase()}</span></div>
+          <div class="dp-row"><span>Assigned Role</span> <span class="tb-role ${roleClass}">${(data.role||'').toUpperCase()}</span></div>
+          ${data.CreatedAt ? `<div class="dp-row"><span>Joined</span> <strong>${new Date(data.CreatedAt).toLocaleDateString()}</strong></div>` : ''}
         </div>`;
       } else {
         html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
