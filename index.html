@@ -236,7 +236,23 @@
     .response-header .status { padding: 0.2rem 0.8rem; border-radius: 4px; font-size: 0.75rem; font-weight: 800; }
     .status-ok  { background: rgba(16,185,129,0.2); color: #34d399; }
     .status-err { background: rgba(239,68,68,0.2); color: #f87171; }
-    .response-body { padding: 1.2rem; font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.6); }
+    .response-body { padding: 1.2rem; font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; background: rgba(0,0,0,0.6); }
+    .response-body pre { font-family: 'Courier New', monospace; white-space: pre-wrap; margin: 0; }
+    
+    /* Formatted Output Styles */
+    .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .data-table th { padding: 0.8rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+    
+    .data-msg { display: flex; align-items: center; gap: 0.8rem; font-size: 1rem; font-weight: 600; }
+    .data-msg .msg-icon { font-size: 1.2rem; }
+    .data-token { margin-top: 1rem; padding: 0.8rem; background: rgba(0,0,0,0.4); border-radius: 6px; font-family: monospace; color: var(--muted); word-break: break-all; font-size: 0.8rem; border: 1px solid var(--border); }
+    
+    .data-profile { display: flex; flex-direction: column; gap: 0.8rem; }
+    .dp-row { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+    .dp-row span:first-child { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
 
     /* Endpoints */
     .ep-card { opacity: 0; }
@@ -540,7 +556,45 @@
     const ok = status >= 200 && status < 300;
     statusEl.textContent = status;
     statusEl.className = 'status ' + (ok ? 'status-ok' : 'status-err');
-    bodyEl.textContent = JSON.stringify(data, null, 2);
+    
+    let html = '';
+    if (data && typeof data === 'object') {
+      if (Array.isArray(data)) {
+        html += '<table class="data-table"><thead><tr><th>ID</th><th>USERNAME</th><th>ROLE</th></tr></thead><tbody>';
+        data.forEach(item => {
+          const roleClass = item.role === 'admin' ? 'role-admin' : 'role-user';
+          html += `<tr>
+            <td>${item.id}</td>
+            <td><strong style="color:var(--text)">${item.username}</strong></td>
+            <td><span class="tb-role ${roleClass}">${item.role.toUpperCase()}</span></td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+      } else if (data.message || data.error) {
+        const msg = data.message || data.error;
+        const icon = data.error ? '⚠️' : '✅';
+        html += `<div class="data-msg">
+          <span class="msg-icon">${icon}</span>
+          <span class="msg-text" style="color: ${data.error ? 'var(--danger)' : 'var(--success)'}">${msg}</span>
+        </div>`;
+        if (data.token) {
+           html += `<div class="data-token"><strong>TOKEN:</strong><br/>${data.token.substring(0, 40)}...</div>`;
+        }
+      } else if (data.id !== undefined && data.username) {
+        const roleClass = data.role === 'admin' ? 'role-admin' : 'role-user';
+        html += `<div class="data-profile">
+          <div class="dp-row"><span>User ID</span> <strong style="font-size:1.1rem">${data.id}</strong></div>
+          <div class="dp-row"><span>Username</span> <strong style="font-size:1.1rem">${data.username}</strong></div>
+          <div class="dp-row"><span>Assigned Role</span> <span class="tb-role ${roleClass}">${data.role.toUpperCase()}</span></div>
+        </div>`;
+      } else {
+        html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      }
+    } else {
+      html += `<pre>${data}</pre>`;
+    }
+    
+    bodyEl.innerHTML = html;
   }
 
   function updateTokenBar() {
