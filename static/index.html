@@ -258,6 +258,22 @@
     .ep-card { opacity: 0; }
     .endpoints { margin-top: 1rem; }
     .ep { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 0.6rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); transition: transform 0.2s; }
+    
+    /* Crazy UI Effect for All Users */
+    #card-all-users { grid-column: 1 / -1; }
+    .data-table-container {
+      position: relative; padding: 2px; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);
+      margin-top: 0.5rem;
+    }
+    .data-table-container::before {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: conic-gradient(from 0deg, transparent 0%, transparent 60%, var(--warning) 80%, transparent 100%);
+      animation: spin 3s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .table-wrapper { position: relative; background: rgba(10,10,15,0.95); border-radius: 10px; padding: 1rem; backdrop-filter: blur(10px); z-index: 1; }
+
     .ep:hover { transform: translateX(5px); background: rgba(255,255,255,0.05); }
     .method { padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 900; min-width: 50px; text-align: center; }
     .post  { background: rgba(16,185,129,0.2); color: #34d399; }
@@ -394,7 +410,7 @@
     </div>
 
     <!-- ALL USERS -->
-    <div class="card">
+    <div class="card" id="card-all-users">
       <div class="card-header">
         <div class="card-icon icon-yellow">★</div>
         <div>
@@ -560,7 +576,7 @@
     let html = '';
     if (data && typeof data === 'object') {
       if (Array.isArray(data)) {
-        html += '<table class="data-table"><thead><tr><th>ID</th><th>USERNAME</th><th>ROLE</th></tr></thead><tbody>';
+        html += '<div class="data-table-container"><div class="table-wrapper"><table class="data-table"><thead><tr><th>ID</th><th>USERNAME</th><th>ROLE</th></tr></thead><tbody>';
         data.forEach(item => {
           const userId = item.ID !== undefined ? item.ID : item.id;
           const roleClass = item.role === 'admin' ? 'role-admin' : 'role-user';
@@ -570,7 +586,7 @@
             <td><span class="tb-role ${roleClass}">${(item.role||'').toUpperCase()}</span></td>
           </tr>`;
         });
-        html += '</tbody></table>';
+        html += '</tbody></table></div></div>';
       } else if (data.message || data.error || data.token) {
         const msg = data.message || data.error || "Authentication successful!";
         const icon = data.error ? '⚠️' : '✅';
